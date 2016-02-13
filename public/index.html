@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>StreamFunBox: Control</title>
+  <style type='text/css'>
+    #images {
+      width: 100%;
+    }
+
+    #images .image {
+      display: inline-block;
+      width: 50px;
+      height: 50px;
+      cursor: pointer;
+    }
+
+    #images .image:hover {
+      transform: scale(1.5);
+    }
+
+    #images .image img {
+      width: 100%; /* or any custom size */
+      height: 100%;
+      object-fit: contain;
+    }
+
+    #sounds .sound {
+      cursor: pointer;
+    }
+
+    #sounds .sound:hover {
+      background-color: #ddd;
+    }
+
+  </style>
+</head>
+
+<body>
+  <a href="http://localhost:3000/widget.html" target="_blank">Launch widget</a>
+
+  <div id="images">
+    <h2>Картинки</h2>
+  </div>
+
+  <div id="sounds">
+    <h2>Звуки</h2>
+  </div>
+
+  <div id="voice">
+    <h2>TTS</h2>
+    <label for="voice-text">Enter for TTS:</label><br />
+    <textarea id="voice-text" name="tts-1" cols="40" rows="5"></textarea><br />
+    <button id="send-tts">Tell Me !!!</button>
+  </div>
+
+  <script>
+    var loc = window.location,
+      uri = 'ws:',
+      baseURL = loc.href;
+
+
+    if (loc.protocol === 'https:') {
+      uri = 'wss:';
+    }
+    uri += '//' + loc.host;
+    uri += loc.pathname + 'ws/command';
+
+    ws = new WebSocket(uri);
+
+    // ws.onopen = function() {}
+
+    var resources = {};
+
+    ws.onmessage = function(evt) {
+      resources = JSON.parse(evt.data);
+      showResources();
+    };
+
+    ws.onclose = reconnect;
+    ws.onerror = reconnect;
+    function reconnect() {
+      ws = new WebSocket(uri);
+    }
+
+    images = document.getElementById("images");
+    sounds = document.getElementById("sounds");
+    sendTTSButton = document.getElementById("send-tts");
+    TTSTextArea = document.getElementById("voice-text");
+
+    sendTTSButton.onclick = function() {
+      msg = {
+        message: TTSTextArea.value,
+        command: 'voice'
+      };
+      ws.send(JSON.stringify(msg));
+      TTSTextArea.value = ""
+    };
+
+    function showResources() {
+      resources.Images.forEach(function(image) {
+        images.appendChild(imageElement(image))
+      });
+      resources.Sounds.forEach(function(sound) {
+        sounds.appendChild(soundElement(sound))
+      });
+    }
+
+    function soundElement(soundName) {
+      soundURL = baseURL + 'sounds/' + soundName;
+
+      result = document.createElement('div');
+      result.className = 'sound';
+      result.setAttribute('data-url', soundURL);
+
+      result.onclick = sendToWidget;
+
+      soundP = document.createElement('p');
+      soundP.innerText = soundName;
+
+      result.appendChild(soundP);
+
+      return result;
+    }
+
+    function imageElement(imageName) {
+      imageURL = baseURL + 'images/' + imageName;
+
+      result = document.createElement('div');
+      result.className = 'image';
+      result.setAttribute('data-url', imageURL);
+
+      result.onclick = sendToWidget;
+
+      img = document.createElement('img');
+      img.src = imageURL;
+
+      result.appendChild(img);
+
+      return result;
+    }
+
+    function sendToWidget(event) {
+      elementURL = event.currentTarget.getAttribute('data-url');
+
+      command = "image";
+      if (event.currentTarget.className == 'sound') {
+        command = "sound";
+      }
+
+      msg = {
+        message: elementURL,
+        command: command
+      };
+      ws.send(JSON.stringify(msg));
+    }
+
+
+  </script>
+</body>
+
+</html>

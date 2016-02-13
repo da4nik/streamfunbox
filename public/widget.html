@@ -1,0 +1,113 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8">
+  <title>StreamFunBox: Widget</title>
+  <style type="text/css">
+    html, body {
+      background-color: #0F0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    #stream-image-container {
+      width: 100%;
+      height: 100%;
+      padding: 0;
+    }
+
+    #stream-image {
+      margin-top: 10px;
+      width: calc(100% - 20px); /* or any custom size */
+      height: calc(100% - 20px);
+      object-fit: scale-down;
+
+      transition: opacity 1s ease-out 0.5s;
+      opacity: 0;
+    }
+
+    #stream-image.showing {
+      transition: opacity 0.5s ease-out 0.5s;
+      opacity: 1;
+    }
+
+    .centered {
+      padding: 0;
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      margin-right: -50%;
+      transform: translate(-50%, -50%)
+    }
+
+  </style>
+</head>
+
+<body>
+
+  <div id="stream-image-container" class="centered">
+    <img id="stream-image" />
+  </div>
+
+  <script>
+    var loc = window.location;
+      var uri = 'ws:';
+
+    if (loc.protocol === 'https:') {
+      uri = 'wss:';
+    }
+    uri += '//' + loc.host + '/ws/widget';
+
+    ws = new WebSocket(uri);
+
+    ws.onopen = function() {};
+
+    ws.onclose = reconnect;
+    ws.onerror = reconnect;
+    function reconnect() {
+      ws = new WebSocket(uri);
+    }
+
+    img = document.getElementById("stream-image");
+    function showImage(message) {
+      img.onload = function() {
+        img.className = "showing";
+
+        setTimeout(function() {
+          img.className = "";
+        }, 5000);
+      };
+      img.src = message.Message;
+    }
+
+    function playSound(message) {
+      var audio = new Audio(message.Message);
+      audio.oncanplay = function() {
+        audio.play();
+      }
+    }
+
+    function playVoice(message) {
+      var msg = new SpeechSynthesisUtterance(message.Message);
+      msg.lang = 'ru-RU';
+      msg.rate = 0.8;
+      window.speechSynthesis.speak(msg);
+    }
+
+    var messageHandlers = {
+      'sound': playSound,
+      'image': showImage,
+      'voice': playVoice
+    };
+
+    ws.onmessage = function(evt) {
+      var message = JSON.parse(evt.data);
+      messageHandlers[message.Command](message);
+    }
+  </script>
+</body>
+
+</html>
