@@ -2,9 +2,11 @@ package main
 
 import (
 	"encoding/json"
+	"flag"
 	"github.com/labstack/echo"
 	mw "github.com/labstack/echo/middleware"
 	"golang.org/x/net/websocket"
+	"strconv"
 )
 
 type controlMessage struct {
@@ -12,9 +14,13 @@ type controlMessage struct {
 	Command string
 }
 
-const (
-	imagesPath = "images"
-	soundsPath = "sounds"
+var (
+	port         int
+	imagesPath   string
+	soundsPath   string
+	publicPath   string
+	daemonize    bool
+	enableLogger bool
 )
 
 var (
@@ -23,21 +29,36 @@ var (
 )
 
 func main() {
+	flag.IntVar(&port, "p", 8998, "server port")
+	flag.StringVar(&imagesPath, "images", "images", "images folder path")
+	flag.StringVar(&soundsPath, "sounds", "sounds", "sounds folder path")
+	flag.StringVar(&soundsPath, "public", "public", "public folder path")
+	flag.BoolVar(&daemonize, "d", false, "run as daemon")
+	flag.BoolVar(&enableLogger, "l", false, "enable logging")
+
+	flag.Parse()
+
+	runServer()
+}
+
+func runServer() {
 	go fanOutToWidgets()
 
 	e := echo.New()
 
-	e.Use(mw.Logger())
+	if enableLogger {
+		e.Use(mw.Logger())
+	}
 	e.Use(mw.Recover())
 
-	e.Static("/", "public")
+	e.Static("/", publicPath)
 	e.Static("/sounds", soundsPath)
 	e.Static("/images", imagesPath)
 
 	e.WebSocket("/ws/widget", handleWidgetWS)
 	e.WebSocket("/ws/command", handleCommandWS)
 
-	e.Run(":3000")
+	e.Run(":" + strconv.Itoa(port))
 }
 
 func handleWidgetWS(c *echo.Context) error {
