@@ -54,21 +54,40 @@
 
   <script>
     var loc = window.location;
-      var uri = 'ws:';
+
+    var messageHandlers = {
+      'sound': playSound,
+      'image': showImage,
+      'voice': playVoice
+    }
+
+    var uri = 'ws:';
 
     if (loc.protocol === 'https:') {
       uri = 'wss:';
     }
     uri += '//' + loc.host + '/ws/widget';
 
-    ws = new WebSocket(uri);
+    DialWS()
 
-    ws.onopen = function() {};
+    function DialWS() {
+      try {
+        ws = new WebSocket(uri);
 
-    ws.onclose = reconnect;
-    ws.onerror = reconnect;
+        ws.onclose = ws.onerror = reconnect;
+
+        ws.onmessage = function(evt) {
+          var message = JSON.parse(evt.data);
+          messageHandlers[message.Command](message)
+        };
+      } catch (error) {
+        reconnect()
+      }
+    }
+
     function reconnect() {
-      ws = new WebSocket(uri);
+      ws.onclose = ws.onerror = ws.onmessage = null;
+      setTimeout(DialWS, 1000);
     }
 
     img = document.getElementById("stream-image");
@@ -79,7 +98,7 @@
         setTimeout(function() {
           img.className = "";
         }, 5000);
-      };
+      }
       img.src = message.Message;
     }
 
@@ -92,21 +111,11 @@
 
     function playVoice(message) {
       var msg = new SpeechSynthesisUtterance(message.Message);
-      msg.lang = 'ru-RU';
+      msg.lang = 'ru-RU'
       msg.rate = 0.8;
       window.speechSynthesis.speak(msg);
     }
 
-    var messageHandlers = {
-      'sound': playSound,
-      'image': showImage,
-      'voice': playVoice
-    };
-
-    ws.onmessage = function(evt) {
-      var message = JSON.parse(evt.data);
-      messageHandlers[message.Command](message);
-    }
   </script>
 </body>
 

@@ -21,7 +21,8 @@
     }
 
     #images .image img {
-      width: 100%; /* or any custom size */
+      width: 100%;
+      /* or any custom size */
       height: 100%;
       object-fit: contain;
     }
@@ -33,12 +34,11 @@
     #sounds .sound:hover {
       background-color: #ddd;
     }
-
   </style>
 </head>
 
 <body>
-  <a href="http://localhost:3000/widget.html" target="_blank">Launch widget</a>
+  <button id="open-widget-link">Launch widget</button>
 
   <div id="images">
     <h2>Картинки</h2>
@@ -50,15 +50,19 @@
 
   <div id="voice">
     <h2>TTS</h2>
-    <label for="voice-text">Enter for TTS:</label><br />
-    <textarea id="voice-text" name="tts-1" cols="40" rows="5"></textarea><br />
+    <label for="voice-text">Enter for TTS:</label>
+    <br />
+    <textarea id="voice-text" name="tts-1" cols="40" rows="5"></textarea>
+    <br />
     <button id="send-tts">Tell Me !!!</button>
   </div>
 
   <script>
     var loc = window.location,
       uri = 'ws:',
-      baseURL = loc.href;
+      baseURL = loc.href,
+      ws,
+      resources = {};
 
 
     if (loc.protocol === 'https:') {
@@ -67,22 +71,36 @@
     uri += '//' + loc.host;
     uri += loc.pathname + 'ws/command';
 
-    ws = new WebSocket(uri);
+    DialWS()
 
-    // ws.onopen = function() {}
-
-    var resources = {};
-
-    ws.onmessage = function(evt) {
-      resources = JSON.parse(evt.data);
-      showResources();
-    };
-
-    ws.onclose = reconnect;
-    ws.onerror = reconnect;
-    function reconnect() {
-      ws = new WebSocket(uri);
+    launchWidgetButton = document.getElementById("open-widget-link")
+    launchWidgetButton.onclick = function() {
+        newWidget = window.open(baseURL + "widget.html",
+          "StreamFunBox: Widget",
+          "width=600,height=420,resizable=yes,scrollbars=no,status=no,menubar=no,toolbar=no,location=no,directories=no"
+        )
     }
+
+    function DialWS() {
+      try {
+        ws = new WebSocket(uri);
+
+        ws.onclose = ws.onerror = reconnect;
+
+        ws.onmessage = function(evt) {
+          resources = JSON.parse(evt.data);
+          showResources();
+        };
+      } catch (error) {
+        reconnect()
+      }
+    }
+
+    function reconnect() {
+      ws.onclose = ws.onerror = ws.onmessage = null;
+      setTimeout(DialWS, 1000);
+    }
+
 
     images = document.getElementById("images");
     sounds = document.getElementById("sounds");
@@ -99,6 +117,9 @@
     };
 
     function showResources() {
+      images.innerHTML = ""
+      sounds.innerHTML = ""
+
       resources.Images.forEach(function(image) {
         images.appendChild(imageElement(image))
       });
@@ -155,8 +176,6 @@
       };
       ws.send(JSON.stringify(msg));
     }
-
-
   </script>
 </body>
 

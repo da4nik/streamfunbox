@@ -32,7 +32,7 @@ func main() {
 	flag.IntVar(&port, "p", 8998, "server port")
 	flag.StringVar(&imagesPath, "images", "images", "images folder path")
 	flag.StringVar(&soundsPath, "sounds", "sounds", "sounds folder path")
-	flag.StringVar(&soundsPath, "public", "public", "public folder path")
+	flag.StringVar(&publicPath, "public", "public", "public folder path")
 	flag.BoolVar(&daemonize, "d", false, "run as daemon")
 	flag.BoolVar(&enableLogger, "l", false, "enable logging")
 
