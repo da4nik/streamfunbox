@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo"
 	mw "github.com/labstack/echo/middleware"
 	"golang.org/x/net/websocket"
+	"os"
 	"strconv"
 )
 
@@ -13,6 +14,11 @@ type controlMessage struct {
 	Message string
 	Command string
 }
+
+const (
+	portEnvVariableName = "STREAMFUNBOX_PORT"
+	defaultPort         = 8998
+)
 
 var (
 	port         int
@@ -29,7 +35,7 @@ var (
 )
 
 func main() {
-	flag.IntVar(&port, "p", 8998, "server port")
+	flag.IntVar(&port, "p", defaultPort, "server port")
 	flag.StringVar(&imagesPath, "images", "images", "images folder path")
 	flag.StringVar(&soundsPath, "sounds", "sounds", "sounds folder path")
 	flag.StringVar(&publicPath, "public", "public", "public folder path")
@@ -38,6 +44,13 @@ func main() {
 
 	flag.Parse()
 
+	if os.Getenv(portEnvVariableName) != "" {
+		var err error
+		port, err = strconv.Atoi(os.Getenv(portEnvVariableName))
+		if err != nil {
+			port = defaultPort
+		}
+	}
 	runServer()
 }
 
